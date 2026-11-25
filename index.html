@@ -54,6 +54,7 @@ details.prazdne{margin-top:10px;font-size:12px}details.prazdne summary{cursor:po
 .pril{margin:6px 0;padding:6px;border:1px solid var(--line);border-radius:6px}.pril img{max-width:220px;max-height:160px;margin:4px 6px 0 0;border:1px solid var(--line)}
 :root{--t-zaz:#4f8a7b}
 .cal .d.zaz{background:var(--t-zaz)}
+.dok-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px;margin-top:6px}.dok-item{display:block;padding:8px 10px;border:1px solid var(--line);border-radius:6px;text-decoration:none;color:inherit;background:#fafbfc}.dok-item:hover{border-color:var(--acc);background:#f0f6ff}.dok-item b{display:block;font-size:13px;color:var(--acc)}.dok-item small{color:var(--mut)}
 </style>
 </head>
 <body>
@@ -103,7 +104,8 @@ details.prazdne{margin-top:10px;font-size:12px}details.prazdne summary{cursor:po
 <section>
   <div class="card" id="detailCard"><h2 id="detH">Detail dne</h2><div id="detail" class="mut">Vyber den v kalendáři.</div></div>
   
-  <div class="card" id="galCard" hidden><h2>Fotodokumentace <span id="galN" class="mut"></span></h2><div class="gal" id="gal"></div><button id="galAll">Zobrazit všechny</button></div>
+  <div class="card" id="dokCard"><h2>Technická a prováděcí dokumentace</h2><div class="dok-grid"><a class="dok-item" href="dok/TL_CHS-EPODUR_474_PRIMER_FAST.pdf" target="_blank" rel="noopener"><b>Technický list – CHS-EPODUR 474 PRIMER FAST</b><small>SPOLCHEMIE · míchací poměr 100:30, podmínky aplikace (PDF)</small></a><a class="dok-item" href="dok/TP_01_Epoxidova_penetrace_a_sterka_se_sklotkaninou.pdf" target="_blank" rel="noopener"><b>TP-01 – Epoxidová penetrace a stěrka se sklotkaninou</b><small>Technologický postup a množství materiálů (PDF)</small></a><a class="dok-item" href="dok/Sparorez_PD_D1106.pdf" target="_blank" rel="noopener"><b>Spárořez dlažby dle PD (D.1.1.06)</b><small>Výkres spárořezu místností 0.01–0.06 (PDF)</small></a><a class="dok-item" href="dok/Kladeci_plan_sine_001_R10.pdf" target="_blank" rel="noopener"><b>Kladečský plán vstupní síně 0.01 (R10)</b><small>Rozložení formátů A/B/C/D a krajních dořezů (PDF)</small></a><a class="dok-item" href="dok/TL_CEMIX_8260_FLEX_C2TE_S1.pdf" target="_blank" rel="noopener"><b>Technický list – CEMIX 8260 FLEX C2TE S1</b><small>Flexibilní lepidlo třídy C2TE S1, zrnitost 0–0,7 mm (PDF)</small></a><a class="dok-item" href="dok/TP_02_Pokladka_zulove_dlazby_do_lepidla_C2TE_S1.pdf" target="_blank" rel="noopener"><b>TP-02 – Pokládka žulové dlažby do lepidla C2TE S1</b><small>Postup montáže Cinza Ariz tl. 30 mm a množství (PDF)</small></a></div></div>
+<div class="card" id="galCard" hidden><h2>Fotodokumentace <span id="galN" class="mut"></span></h2><div class="gal" id="gal"></div><button id="galAll">Zobrazit všechny</button></div>
   <details class="card"><summary><h2>Statistiky výběru <span class="mut">(měřeno z textu záznamů)</span></h2></summary><div class="row obd"><label>od <input type="date" data-sync="od"></label><label>do <input type="date" data-sync="do"></label></div><div class="kpis" id="kpis"></div></details>
   <details class="card"><summary><h2>Grafy</h2></summary><div class="row obd"><label>od <input type="date" data-sync="od"></label><label>do <input type="date" data-sync="do"></label></div><div class="charts" id="charts"></div></details>
   <details class="card"><summary><h2>Časová osa <span class="mut" id="osaRozsah">(od nejnovějšího)</span></h2></summary><div class="list" id="list"></div></details>
