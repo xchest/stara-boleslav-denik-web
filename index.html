@@ -299,7 +299,7 @@ function kpis(vis) {
   const os = s.filter(d => d.osoby != null);
   const k = [["záznamů", vis.length], ["pracovních dní", s.filter(d => d.pracovalo).length || "nedoloženo"], 
     ["osobodny", os.length ? sum("osoby") + ` <small class="mut">(${os.length} dní)</small>` : "nedoloženo"], ["průměr osob/den", os.length ? num(sum("osoby") / os.length) : "nedoloženo"],
-    ["dny se srážkami >1 mm", s.filter(d => (d.srazky_mm || 0) > 1).length], ["překážky / pokyny", sum("prekazky")], ["dny s jednáním", sum("jednani")], ["fotky", sum("foto") || "nedoloženo"]];
+    ["dny se srážkami >1 mm", s.filter(d => (d.srazky_mm || 0) > 1).length], ["překážky / pokyny", sum("prekazky")], ["dny s jednáním", sum("jednani")], ["hodiny celkem", sum("h") ? num(sum("h")) + " h" : "nedoloženo"], ["fotky", sum("foto") || "nedoloženo"]];
   // kalendářní dny období bez záznamu deníku = nedoloženo (nic se nedopočítává)
   const od = $("od").value, dd = $("do").value, nDni = Math.round((new Date(dd + "T12:00") - new Date(od + "T12:00")) / 864e5) + 1;
   const nZaz = new Set(R.filter(r => r.datum >= od && r.datum <= dd).map(r => r.datum)).size;
