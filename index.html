@@ -67,7 +67,7 @@ details.prazdne{margin-top:10px;font-size:12px}details.prazdne summary{cursor:po
 <aside>
   <div class="card">
     <h2>Kalendář <span class="mut">(od nejnovějšího)</span></h2>
-    <div class="legend"><span><i style="background:var(--t-prac)"></i>pracovní</span><span><i style="background:var(--t-nep)"></i>nepracovalo</span><span><i style="background:var(--t-sv)"></i>svátek</span><span><i style="background:var(--t-zaz)"></i>záznam z podkladů</span><span><i style="background:var(--t-neu)"></i>nedoloženo (bez záznamu)</span></div>
+    <div class="legend"><span><i style="background:var(--t-prac)"></i>pracovní</span><span><i style="background:var(--t-nep)"></i>nepracovalo</span><span><i style="background:var(--t-sv)"></i>svátek</span><span><i style="background:var(--t-zaz)"></i>záznam z podkladů</span><span><i style="background:var(--t-neu)"></i>nedoloženo (bez záznamu)</span><span><i style="background:var(--bad)"></i>překážka objednatele</span></div>
     <div id="cal"></div>
   </div>
   <details class="card">
@@ -87,7 +87,7 @@ details.prazdne{margin-top:10px;font-size:12px}details.prazdne summary{cursor:po
     <label><input type="checkbox" id="f-prek"> jen s překážkou / pokynem</label>
     <label><input type="checkbox" id="f-jedn"> jen s kontrolou / jednáním</label>
     <label><input type="checkbox" id="f-foto"> jen s fotkou</label>
-    
+    <label class="red"><input type="checkbox" id="f-pod"> jen dny s překážkou na straně objednatele</label>
     <h3>Místnost <span class="mut">(dle textu)</span></h3><div id="objekty"></div>
     <h3>Profese <span class="mut">(dle textu)</span></h3><div id="profese"></div>
     <div class="row" style="margin-top:10px"><button id="reset">Zrušit filtry</button><button class="pri" id="tisk">Tisk / PDF výběru</button></div>
@@ -103,7 +103,11 @@ details.prazdne{margin-top:10px;font-size:12px}details.prazdne summary{cursor:po
 </aside>
 <section>
   <div class="card" id="detailCard"><h2 id="detH">Detail dne</h2><div id="detail" class="mut">Vyber den v kalendáři.</div></div>
-  
+  <details class="card" id="podCard" open>
+    <summary><h2>Překážky na straně objednatele <span id="podN" class="mut"></span></h2></summary>
+    <div class="kpis" id="podK"></div>
+    <div id="podList" class="mut">Přehled překážek nebyl vygenerován.</div>
+  </details>
   <div class="card" id="dokCard"><h2>Technická a prováděcí dokumentace</h2><div class="dok-grid"><a class="dok-item" href="dok/TL_CHS-EPODUR_474_PRIMER_FAST.pdf" target="_blank" rel="noopener"><b>Technický list – CHS-EPODUR 474 PRIMER FAST</b><small>SPOLCHEMIE · míchací poměr 100:30, podmínky aplikace (PDF)</small></a><a class="dok-item" href="dok/TP_01_Epoxidova_penetrace_a_sterka_se_sklotkaninou.pdf" target="_blank" rel="noopener"><b>TP-01 – Epoxidová penetrace a stěrka se sklotkaninou</b><small>Technologický postup a množství materiálů (PDF)</small></a><a class="dok-item" href="dok/Sparorez_PD_D1106.pdf" target="_blank" rel="noopener"><b>Spárořez dlažby dle PD (D.1.1.06)</b><small>Výkres spárořezu místností 0.01–0.06 (PDF)</small></a><a class="dok-item" href="dok/Kladeci_plan_sine_001_R10.pdf" target="_blank" rel="noopener"><b>Kladečský plán vstupní síně 0.01 (R10)</b><small>Rozložení formátů A/B/C/D a krajních dořezů (PDF)</small></a><a class="dok-item" href="dok/TL_CEMIX_8260_FLEX_C2TE_S1.pdf" target="_blank" rel="noopener"><b>Technický list – CEMIX 8260 FLEX C2TE S1</b><small>Flexibilní lepidlo třídy C2TE S1, zrnitost 0–0,7 mm (PDF)</small></a><a class="dok-item" href="dok/TP_02_Pokladka_zulove_dlazby_do_lepidla_C2TE_S1.pdf" target="_blank" rel="noopener"><b>TP-02 – Pokládka žulové dlažby do lepidla C2TE S1</b><small>Postup montáže Cinza Ariz tl. 30 mm a množství (PDF)</small></a></div></div>
 <div class="card" id="galCard" hidden><h2>Fotodokumentace <span id="galN" class="mut"></span></h2><div class="gal" id="gal"></div><button id="galAll">Zobrazit všechny</button></div>
   <details class="card"><summary><h2>Statistiky výběru <span class="mut">(měřeno z textu záznamů)</span></h2></summary><div class="row obd"><label>od <input type="date" data-sync="od"></label><label>do <input type="date" data-sync="do"></label></div><div class="kpis" id="kpis"></div></details>
@@ -113,7 +117,7 @@ details.prazdne{margin-top:10px;font-size:12px}details.prazdne summary{cursor:po
 </main>
 <div id="print"></div>
 <script src="data.js"></script>
-
+<script src="podani.js"></script>
 <script>
 "use strict";
 const D = window.DENIK;
@@ -127,6 +131,24 @@ const R = D.public_raw.trim().split("\n").map(l => JSON.parse(l));
 const DNES = new Date().toLocaleDateString("sv-SE", {timeZone: "Europe/Prague"});
 D.data_do = D.obdobi[1]; if (DNES > D.obdobi[1]) D.obdobi[1] = DNES;
 let sel = null;
+// položky čekající na objednatele (build_podani.py); den platí od vzniku do vyřešení, otevřené do konce korpusu
+const P = (window.PODANI || {polozky: []}).polozky;
+const podDen = d => P.filter(p => p.dny.includes(d));
+const KANAL = {email: "e-mail", telefon: "telefon", WA: "zpráva", osobne: "osobně", dopis: "dopis", jiny: "jiný kanál"};
+const SMER = {"my->objednatel": "zhotovitel → objednatel", "objednatel->my": "objednatel → zhotovitel", "TDI->my": "TDI → zhotovitel", "statik->my": "statik objednatele → zhotovitel", interni: "zjištění zhotovitele"};
+// přílohy TDI (výkresy s poznámkami TDI): náhled k rozkliknutí + plné znění poznámek
+const pril = u => (u.prilohy || []).map(k => { const x = (window.PRILOHY || {})[k]; if (!x) return ""; return `<div class="pril"><b>Dokumentace ${esc(k.replace("KD", "KD "))}</b> – výkres zhotovitele s poznámkami TDI (klikněte pro plnou velikost)<div>${x.strany.map((s, i) => `<a href="${esc(s)}" target="_blank" rel="noopener"><img src="${esc(s)}" alt="${esc(k)} strana ${i + 1}" loading="lazy"></a>`).join("")}</div>${x.poznamky_TDI.length ? `<ul class="mut">${x.poznamky_TDI.map(n => `<li>s. ${n.strana}: „${esc(n.text)}“</li>`).join("")}</ul>` : ""}</div>`; }).join("");
+const DRUH = {podani: "podání", urgence: "urgence", vyjadreni: "vyjádření", zminka: "zmínka"};
+// dvojí odpočet: od chvíle, kdy objednatel o bodu ví, a od jeho posledního vyjádření; vlastní revize ani urgence nic nerestartují
+const dnuMezi = (a, b) => Math.round((new Date(b + "T12:00") - new Date(a + "T12:00")) / 864e5);
+const dnuTxt = n => n === 0 ? "dnes" : `${n} ${n === 1 ? "den" : n <= 4 ? "dny" : "dní"}`;
+const osaStav = (p, den) => { const o = p.osa, k = den || (o.do || window.PODANI.korpus_do); return {k, rev: o.rev.filter(r => r[1] <= k), vyj: o.vyjadreni.filter(d => d <= k), urg: o.urg.filter(d => d <= k)}; };
+function osaRadek(p, den) {
+  const o = p.osa, s = osaStav(p, den), z = o.do && o.do <= s.k;
+  const posl = s.vyj.length ? `poslední vyjádření objednatele ${fmtD(s.vyj[s.vyj.length - 1])}${z ? "" : ` (${dnuTxt(dnuMezi(s.vyj[s.vyj.length - 1], s.k))})`}` : "bez vyjádření objednatele";
+  const zac = z ? `Čekalo se na vyjádření objednatele od ${fmtD(o.start)}, uzavřeno ${fmtD(o.do)} (${dnuTxt(dnuMezi(o.start, o.do))})` : `Čeká se na vyjádření objednatele od ${fmtD(o.start)} (${dnuTxt(dnuMezi(o.start, s.k))})`;
+  return `<div><b>${zac}, ${posl}</b>${s.urg.length ? `, urgováno ${s.urg.map(fmtD).join(", ")}` : ""}${s.rev.length ? `<br>Revize: ${s.rev.map(r => `${esc(r[0])} ${fmtD(r[1])}`).join("; ")}` : ""}</div>`;
+}
 
 // výchozí okno = posledních 30 dní; starší záznamy jsou zálohované (archiv), data se nemění
 const addD = (iso, n) => { const t = new Date(iso + "T12:00"); t.setDate(t.getDate() + n); return t.toISOString().slice(0, 10); };
@@ -181,7 +203,7 @@ function filtered(od = $("od").value) {
     if ($("f-jedn").checked && !o.jednani) return false;
     if ($("f-foto").checked && !o.fotky) return false;
     if ($("f-tep").checked && !(o.stats && o.stats.teplota_mimo_limit)) return false;
-    
+    if ($("f-pod")?.checked && !podDen(r.datum).length) return false;
     if (ob.length && !ob.some(v => o.objekty.includes(v.replace("místnost ", "")))) return false;
     if (pr.length && !pr.some(v => o.profese.includes(v))) return false;
     return q.every(w => hay[i].includes(w));
@@ -224,11 +246,11 @@ function cal(vis) {
       const iso = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
       const r = by[iso], inP = iso >= D.obdobi[0] && iso <= D.obdobi[1];
       let cls = "d" + (inP ? " in" : "") + (inP && iso < OD30 ? " arch" : "");
-      
+      const pd = inP ? podDen(iso) : []; if (pd.length) cls += " red";
       if (r) cls += " rec " + ({"pracovní den":"prac","státní svátek":"sv","záznam z podkladů":"zaz"}[r.odvozeno.typ] || "nep") + (ids.has(iso) ? "" : " off") + (sel === iso ? " sel" : "");
       const tl = r && r.odvozeno.stats && r.odvozeno.stats.teplota_mimo_limit;
       let tip = (r ? r.odvozeno.typ : inP ? (iso > D.data_do ? "zápis za tento den se doplňuje" : "nedoloženo (bez záznamu deníku)") : "") + (inP && iso < OD30 ? " · archiv" : "");
-      
+      if (pd.length) tip += `\nPřekážky na straně objednatele (${pd.length}):\n` + pd.map(p => "• " + p.nazev).join("\n");
       html += `<div class="${cls}" ${r ? `data-d="${iso}" ` : ""}title="${esc(tip)}">${d.getDate()}</div>`;
     }
     html += "</div>";
@@ -253,14 +275,45 @@ function list(vis) {
   // časová osa od nejnovějšího (grafy zůstávají chronologicky)
   $("list").innerHTML = [...vis].reverse().map(r => `<div class="it${sel === r.datum ? " sel" : ""}" data-d="${r.datum}">
     <b>${fmtD(r.datum)}</b> <span class="mut">${r.den_tydne}</span> <span class="tag">${esc(r.odvozeno.typ)}</span>
-    ${r.odvozeno.objekty.map(o => `<span class="tag">m. ${o}</span>`).join("")}${r.odvozeno.prekazka ? '<span class="tag">pokyn / překážka</span>' : ""}${r.odvozeno.fotky ? `<span class="tag">foto ${r.odvozeno.fotky}</span>` : ""}
+    ${r.odvozeno.objekty.map(o => `<span class="tag">m. ${o}</span>`).join("")}${r.odvozeno.prekazka ? '<span class="tag">pokyn / překážka</span>' : ""}${podDen(r.datum).length ? `<span class="tag red">překážka objednatele ${podDen(r.datum).length}</span>` : ""}${r.odvozeno.fotky ? `<span class="tag">foto ${r.odvozeno.fotky}</span>` : ""}
     <div class="mut">${hl(snippet(r))}</div></div>`).join("") || '<p class="mut">Filtru neodpovídá žádný záznam.</p>';
   // dnešní den bez zápisu: na začátek osy, aby bylo vidět, že deník je aktuální k dnešku
   if ($("do").value >= DNES && !R.some(r => r.datum === DNES))
     $("list").insertAdjacentHTML("afterbegin", `<div class="it"><b>${fmtD(DNES)}</b> <span class="tag">dnes</span><div class="mut">Zápis za dnešní den se doplňuje (deník se aktualizuje denně).</div></div>`);
 }
+// blok položky: stav k danému dni (do=den) nebo celkově (do=null); vypisuje každou událost s kanálem a raw pointerem
+function pod(p, den) {
+  const ud = p.udalosti.filter(u => !den || u.datum <= den);
+  const vyr = p.vyreseni && (!den || p.vyreseni.datum <= den);
+  // pohled na dřívější den: položka byla otevřená, ale vyřešení přišlo později – uvést ho, ať nepůsobí jako stále visící
+  const pozdeji = !vyr && p.vyreseni ? ` · vyřešeno později ${fmtD(p.vyreseni.datum)} (${esc(p.vyreseni.vysledek || "")})` : "";
+  const stav = vyr ? `vyřešeno ${fmtD(p.vyreseni.datum)} (${esc(p.vyreseni.vysledek || "")})` : (den ? (pozdeji ? `ke dni ${fmtD(den)} otevřeno${pozdeji}` : `ke dni ${fmtD(den)} stále otevřeno`) : `otevřeno ke dni ${fmtD(window.PODANI.korpus_do)}`);
+  const ref = x => x.raw ? ` – <code title="${esc(x.zdroj || "")}">${esc(x.raw)}</code>` : "";
+  const n = (druh, smer) => ud.filter(u => u.druh === druh && (!smer || u.smer === smer)).length;
+  return `<details class="pod${vyr ? " done" : ""}"><summary><b class="t">${esc(p.nazev)}</b> <span class="tag">${vyr ? "vyřízeno" : pozdeji ? "tehdy čekalo – později vyřízeno" : "trvá – neuzavřeno"}</span><span class="tag">${esc(p.typ_text)}</span>${p.objekt ? `<span class="tag">pozice ${esc(p.objekt)}</span>` : ""}
+    ${p.osa ? osaRadek(p, den) : ""}<div>Od ${fmtD(p.vznik.datum)} · ${stav}${p.osa ? "" : ` · trvá ${p.dny.length} dní`} · zaznamenaných událostí: <b>${ud.length}</b></div></summary>
+    <div class="mut">Vznik: „${esc(p.vznik.citace)}“${ref(p.vznik)}</div>
+    <ul>${ud.map(u => `<li><b>${fmtD(u.datum)}</b> ${esc(KANAL[u.kanal] || u.kanal)} · ${esc(SMER[u.smer] || u.smer)} · ${esc(DRUH[u.druh] || u.druh)} · ${esc(u.text)}<br><span class="mut">„${esc(u.citace)}“${ref(u)}</span>${pril(u)}</li>`).join("")}</ul>
+    ${vyr ? `<div class="mut">Vyřešení: „${esc(p.vyreseni.citace)}“${ref(p.vyreseni)}</div>` : ""}${p.poznamka ? `<div class="mut">${p.jistota === "nizka" ? "jistota nízká: " : "Poznámka: "}${esc(p.poznamka)}</div>` : ""}</details>`;
+}
+function podPanel() {
+  if (!window.PODANI) return;
+  const otv = P.filter(p => p.otevreno), U = P.flatMap(p => p.udalosti);
+  const c = (druh, smer) => U.filter(u => u.druh === druh && (!smer || u.smer === smer)).length;
+  // body s osou se počítají z osy, ostatní z událostí; stejný součet jako v jednotlivých položkách
+  const soucet = (pole, druh, smer) => P.reduce((a, p) => a + (p.osa ? p.osa[pole].length : p.udalosti.filter(u => u.druh === druh && (!smer || u.smer === smer)).length), 0);
+  $("podN").textContent = `(stav ke dni ${fmtD(window.PODANI.korpus_do)})`;
+  $("podK").innerHTML = [["otevřených překážek", otv.length], ["vyřešeno", P.length - otv.length], ["zaznamenaných událostí", U.length],
+    ["nejdelší trvá (dní)", otv.length ? Math.max(...otv.map(p => p.dny.length)) : 0]].map(([l, v]) => `<div class="kpi"><b>${v}</b>${l}</div>`).join("");
+  $("podList").className = "";
+  $("podList").innerHTML = [...otv, ...P.filter(p => !p.otevreno)].map(p => pod(p, null)).join("") || '<p class="mut">Žádná položka.</p>';
+}
+function podH(r) {
+  const pd = podDen(r.datum);
+  return pd.length ? `<h3 class="red">Překážky na straně objednatele v tento den (${pd.length})</h3>` + pd.map(p => pod(p, r.datum)).join("") : "";
+}
 
-function dl(r) { return dlDen(r); }
+function dl(r) { return podH(r) + dlDen(r); }
 function dlDen(r) {
   const sek = [["B.1 Údaje o průběhu prací", "b1"], ["B.2 Pokyny, kontroly, dokumentace", "b2"], ["C Zápis", "c_zapis"]];
   // vyplněná pole naplno, nevyplněná (neuvedeno / nedoloženo) jen jako sbalený výčet – měřeno 16. 10. 2026:
@@ -418,7 +471,7 @@ $("soubory").onchange = async e => {
   $("souboryOut").innerHTML = out.join("");
 };
 
-
+podPanel();
 sel = [...R].reverse().find(r => r.datum <= D.obdobi[1])?.datum || null;  // výchozí: nejnovější den
 // sdílený odkaz s obdobím: „od“ a filtr z adresy, konec vždy dnešek – starý odkaz nesmí skrýt nové zápisy
 if (location.hash.length > 1) { fromHash(); $("do").value = D.obdobi[1]; }
